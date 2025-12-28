@@ -10,6 +10,8 @@ on:
         required: true
       WATCHTOWER_UPDATE_URL:
         required: true
+      WATCHTOWER_API_KEY:
+        required: true
   workflow_dispatch:
 
 permissions:
@@ -122,6 +124,7 @@ jobs:
       TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
       TS_OAUTH_CLIENT_SECRET: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
       WATCHTOWER_UPDATE_URL: ${{ secrets.WATCHTOWER_UPDATE_URL }}
+      WATCHTOWER_API_KEY: ${{ secrets.WATCHTOWER_API_KEY }}
     steps:
       - name: Connect Tailscale
         uses: tailscale/github-action@v4
@@ -131,4 +134,4 @@ jobs:
           tags: tag:ci
 
       - name: Trigger Watchtower update
-        run: curl -fsSL "$WATCHTOWER_UPDATE_URL"
+        run: curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_KEY" "$WATCHTOWER_UPDATE_URL"
