@@ -134,4 +134,5 @@ jobs:
           tags: tag:ci
 
       - name: Trigger Watchtower update
-        run: curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$WATCHTOWER_UPDATE_URL"
+        run: |
+          curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$WATCHTOWER_UPDATE_URL"
