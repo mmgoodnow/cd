@@ -98,29 +98,11 @@ jobs:
           name: digest-arm64
           path: digest-arm64.txt
 
-  gate:
+  manifest:
     needs:
       - build-amd64
       - build-arm64
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    outputs:
-      proceed: ${{ steps.decide.outputs.proceed }}
-    steps:
-      - name: Decide manifest eligibility
-        id: decide
-        run: |
-          set -euo pipefail
-          if [ "${{ needs.build-amd64.result }}" != "success" ]; then
-            echo "proceed=false" >> "$GITHUB_OUTPUT"
-            exit 1
-          fi
-
-          echo "proceed=true" >> "$GITHUB_OUTPUT"
-
-  manifest:
-    needs: gate
-    if: ${{ needs.gate.outputs.proceed == 'true' }}
+    if: ${{ always() && needs.build-amd64.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Download digest (amd64)
