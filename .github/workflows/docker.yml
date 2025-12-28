@@ -17,8 +17,23 @@ permissions:
   packages: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      has_dockerfile: ${{ steps.check.outputs.has_dockerfile }}
+    steps:
+      - name: Check for Dockerfile
+        id: check
+        run: |
+          if [ -f Dockerfile ]; then
+            echo "has_dockerfile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_dockerfile=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
-    if: ${{ hashFiles('Dockerfile') != '' }}
+    if: ${{ needs.check.outputs.has_dockerfile == 'true' }}
+    needs: check
     strategy:
       fail-fast: false
       matrix:
@@ -64,7 +79,7 @@ jobs:
           path: digest-${{ matrix.arch }}.txt
 
   manifest:
-    if: ${{ hashFiles('Dockerfile') != '' }}
+    if: ${{ needs.check.outputs.has_dockerfile == 'true' }}
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -107,7 +122,7 @@ jobs:
           done
 
   watchtower-update:
-    if: ${{ hashFiles('Dockerfile') != '' }}
+    if: ${{ needs.check.outputs.has_dockerfile == 'true' }}
     needs: manifest
     runs-on: ubuntu-latest
     env:
