@@ -42,7 +42,7 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true
+          outputs: type=image,name=ghcr.io/${{ toLower(github.repository) }},push-by-digest=true,name-canonical=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -79,7 +79,7 @@ jobs:
           context: .
           platforms: linux/arm64
           push: true
-          outputs: type=image,name=ghcr.io/${{ github.repository }},push-by-digest=true,name-canonical=true
+          outputs: type=image,name=ghcr.io/${{ toLower(github.repository) }},push-by-digest=true,name-canonical=true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -125,7 +125,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ toLower(github.repository) }}
           tags: |
             type=ref,event=branch
             type=ref,event=tag
@@ -134,7 +134,7 @@ jobs:
 
       - name: Create and push manifests
         env:
-          IMAGE: ghcr.io/${{ github.repository }}
+          IMAGE: ghcr.io/${{ toLower(github.repository) }}
           TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           set -euo pipefail
