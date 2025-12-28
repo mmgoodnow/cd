@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   build:
+    if: ${{ !(github.event.repository.private && matrix.arch == 'arm64') }}
     strategy:
       fail-fast: false
       matrix:
