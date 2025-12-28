@@ -99,9 +99,7 @@ jobs:
           path: digest-arm64.txt
 
   manifest:
-    needs:
-      - build-amd64
-      - build-arm64
+    needs: build-amd64
     runs-on: ubuntu-latest
     steps:
       - name: Download digest (amd64)
