@@ -12,6 +12,10 @@ on:
         required: true
       WATCHTOWER_API_TOKEN:
         required: true
+      PUSHOVER_API_KEY:
+        required: false
+      PUSHOVER_USER_KEY:
+        required: false
   workflow_dispatch:
 
 permissions:
