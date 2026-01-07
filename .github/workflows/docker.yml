@@ -207,9 +207,9 @@ jobs:
 
           title="Watchtower update: $REPO ($STATUS)"
           message=$(cat <<EOF
-Workflow: $WORKFLOW
-Run: https://github.com/$REPO/actions/runs/$RUN_ID
-EOF
+          Workflow: $WORKFLOW
+          Run: https://github.com/$REPO/actions/runs/$RUN_ID
+          EOF
           )
 
           if [ -n "${WATCHTOWER_RESPONSE:-}" ]; then
