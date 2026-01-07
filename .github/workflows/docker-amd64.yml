@@ -160,10 +160,7 @@ jobs:
           )
 
           if [ -n "${WATCHTOWER_RESPONSE:-}" ]; then
-            message="$message
-
-Watchtower response:
-$WATCHTOWER_RESPONSE"
+            message="${message}"$'\n\n'"Watchtower response:"$'\n'"${WATCHTOWER_RESPONSE}"
           fi
 
           curl -fsSL -X POST \
