@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  echo "Usage: $0 SECRET_NAME SECRET_VALUE" >&2
+  echo "Example: $0 FOO_API_KEY my-secret-value" >&2
+}
+
+if ! command -v gh >/dev/null 2>&1; then
+  echo "Error: gh CLI is required (https://cli.github.com/)." >&2
+  exit 1
+fi
+
+if [ "$#" -lt 2 ]; then
+  usage
+  exit 1
+fi
+
+secret_name="$1"
+shift
+secret_value="$*"
+
+if [ -z "$secret_value" ]; then
+  echo "Error: secret value cannot be empty." >&2
+  exit 1
+fi
+
+owner=$(gh api user -q .login)
+
+repos=$(gh repo list "$owner" --limit 1000 --source \
+  --json nameWithOwner,isArchived \
+  --jq '.[] | select(.isArchived | not) | .nameWithOwner')
+
+if [ -z "$repos" ]; then
+  echo "No repositories found for $owner." >&2
+  exit 0
+fi
+
+updated=0
+skipped=0
+failed=0
+
+while IFS= read -r repo; do
+  [ -z "$repo" ] && continue
+
+  if gh api "repos/$repo/contents/Dockerfile" --silent >/dev/null 2>&1; then
+    if gh secret set "$secret_name" -R "$repo" --body "$secret_value"; then
+      echo "Set $secret_name on $repo"
+      updated=$((updated + 1))
+    else
+      echo "Failed to set $secret_name on $repo" >&2
+      failed=$((failed + 1))
+    fi
+  else
+    skipped=$((skipped + 1))
+  fi
+done <<< "$repos"
+
+echo "Done. Updated: $updated, Skipped (no Dockerfile): $skipped, Failed: $failed"

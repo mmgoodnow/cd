@@ -167,6 +167,8 @@ jobs:
       TS_OAUTH_CLIENT_SECRET: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
       WATCHTOWER_UPDATE_URL: ${{ secrets.WATCHTOWER_UPDATE_URL }}
       WATCHTOWER_API_TOKEN: ${{ secrets.WATCHTOWER_API_TOKEN }}
+      PUSHOVER_API_KEY: ${{ secrets.PUSHOVER_API_KEY }}
+      PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
     steps:
       - name: Connect Tailscale
         uses: tailscale/github-action@v4
@@ -176,5 +178,46 @@ jobs:
           tags: tag:ci
 
       - name: Trigger Watchtower update
+        id: watchtower
         run: |
-          curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$WATCHTOWER_UPDATE_URL"
+          set -euo pipefail
+          response=$(curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$WATCHTOWER_UPDATE_URL")
+          echo "response<<EOF" >> "$GITHUB_OUTPUT"
+          printf '%s\n' "$response" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
+
+      - name: Notify Pushover
+        if: always()
+        env:
+          WATCHTOWER_RESPONSE: ${{ steps.watchtower.outputs.response }}
+          REPO: ${{ github.repository }}
+          WORKFLOW: ${{ github.workflow }}
+          RUN_ID: ${{ github.run_id }}
+          STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PUSHOVER_API_KEY:-}" ] || [ -z "${PUSHOVER_USER_KEY:-}" ]; then
+            echo "Pushover secrets not set; skipping."
+            exit 0
+          fi
+
+          title="Watchtower update: $REPO ($STATUS)"
+          message=$(cat <<EOF
+Workflow: $WORKFLOW
+Run: https://github.com/$REPO/actions/runs/$RUN_ID
+EOF
+          )
+
+          if [ -n "${WATCHTOWER_RESPONSE:-}" ]; then
+            message="$message
+
+Watchtower response:
+$WATCHTOWER_RESPONSE"
+          fi
+
+          curl -fsSL -X POST \
+            -d "token=$PUSHOVER_API_KEY" \
+            -d "user=$PUSHOVER_USER_KEY" \
+            --data-urlencode "title=$title" \
+            --data-urlencode "message=$message" \
+            https://api.pushover.net/1/messages.json
