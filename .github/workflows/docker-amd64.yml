@@ -29,6 +29,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set build metadata
+        run: |
+          echo "GIT_SHA=$GITHUB_SHA" >> "$GITHUB_ENV"
+          echo "GIT_REF=$GITHUB_REF" >> "$GITHUB_ENV"
+          echo "GIT_REF_NAME=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          echo "GIT_COMMIT_MESSAGE=$(git log -1 --pretty=%s)" >> "$GITHUB_ENV"
+
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -49,6 +56,11 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
+          build-args: |
+            GIT_SHA=${{ env.GIT_SHA }}
+            GIT_REF=${{ env.GIT_REF }}
+            GIT_REF_NAME=${{ env.GIT_REF_NAME }}
+            GIT_COMMIT_MESSAGE=${{ env.GIT_COMMIT_MESSAGE }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true
           cache-from: type=gha
           cache-to: type=gha,mode=max

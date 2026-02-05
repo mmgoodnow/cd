@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Repository Guidelines
 
 ## Scope and Purpose
@@ -29,8 +30,14 @@ This repository contains GitHub Actions workflows that build and publish Docker 
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short, imperative, and sentence case (e.g., "Split reusable workflows for multiarch and amd64").
+- After every change (or logical set of changes), commit and push.
 - PRs should explain workflow behavior changes, list required secrets, and link to a successful workflow run.
 
 ## Security & Configuration Tips
 - Watchtower updates require `TS_OAUTH_CLIENT_ID`, `TS_OAUTH_CLIENT_SECRET`, `WATCHTOWER_UPDATE_URL`, and `WATCHTOWER_API_TOKEN`.
 - Do not echo secret values; rely on masked environment variables in CI logs.
+=======
+# Agent Instructions
+
+- After every change (or logical set of changes), commit and push.
+>>>>>>> bd78bc6 (Pass git metadata build args)
