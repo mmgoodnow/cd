@@ -152,11 +152,9 @@ jobs:
       - name: Notify Pushover
         if: always()
         env:
-          WATCHTOWER_RESPONSE: ${{ steps.watchtower.outputs.response }}
           REPO: ${{ github.repository }}
-          WORKFLOW: ${{ github.workflow }}
-          RUN_ID: ${{ github.run_id }}
-          STATUS: ${{ job.status }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [ -z "${PUSHOVER_API_KEY:-}" ] || [ -z "${PUSHOVER_USER_KEY:-}" ]; then
@@ -164,16 +162,24 @@ jobs:
             exit 0
           fi
 
-          title="Watchtower update: $REPO ($STATUS)"
-          message=$(cat <<EOF
-          Workflow: $WORKFLOW
-          Run: https://github.com/$REPO/actions/runs/$RUN_ID
-          EOF
-          )
+          app_name="${REPO##*/}"
+          short_sha=$(printf '%.7s' "$GITHUB_SHA")
+          commit_message="${COMMIT_MESSAGE%%$'\n'*}"
 
-          if [ -n "${WATCHTOWER_RESPONSE:-}" ]; then
-            message="${message}"$'\n\n'"Watchtower response:"$'\n'"${WATCHTOWER_RESPONSE}"
+          if [ -z "$commit_message" ]; then
+            commit_message=$(
+              curl -fsSL \
+                -H "Authorization: Bearer $GH_TOKEN" \
+                -H "Accept: application/vnd.github+json" \
+                "https://api.github.com/repos/$REPO/commits/$GITHUB_SHA" |
+              python3 -c 'import json, sys; print(json.load(sys.stdin)["commit"]["message"].splitlines()[0])'
+            )
           fi
+
+          [ -n "$commit_message" ] || commit_message="$short_sha"
+
+          title="$app_name $short_sha"
+          message="$commit_message"
 
           curl -fsSL -X POST \
             -d "token=$PUSHOVER_API_KEY" \
