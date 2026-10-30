@@ -144,7 +144,17 @@ jobs:
         id: watchtower
         run: |
           set -euo pipefail
-          response=$(curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$WATCHTOWER_UPDATE_URL")
+          # One repository's deployment must not update unrelated applications.
+          update_url=$(python3 - <<'PY'
+          import os
+          from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+          url = urlsplit(os.environ["WATCHTOWER_UPDATE_URL"])
+          query = [(key, value) for key, value in parse_qsl(url.query, keep_blank_values=True) if key != "image"]
+          query.append(("image", "ghcr.io/" + os.environ["GITHUB_REPOSITORY"].lower()))
+          print(urlunsplit(url._replace(query=urlencode(query))))
+          PY
+          )
+          response=$(curl -fsSL -H "Authorization: Bearer $WATCHTOWER_API_TOKEN" "$update_url")
           echo "response<<EOF" >> "$GITHUB_OUTPUT"
           printf '%s\n' "$response" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
