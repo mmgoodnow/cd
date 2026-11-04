@@ -1,0 +1,18 @@
+name: Validate shared CD
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse workflow YAML
+        run: ruby -ryaml -e 'ARGV.each { |file| YAML.load_file(file) }' .github/workflows/*.yml
+      - name: Test publication guards and deployment scope
+        run: python3 -m unittest discover -v
