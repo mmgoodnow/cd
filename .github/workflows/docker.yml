@@ -130,6 +130,12 @@ jobs:
       - build-amd64
       - build-arm64
     runs-on: ubuntu-latest
+    concurrency:
+      group: cd-publish-${{ github.repository }}-${{ github.ref }}
+      queue: max
+      cancel-in-progress: false
+    outputs:
+      published: ${{ steps.current.outputs.publish }}
     steps:
       - name: Download digest (amd64)
         uses: actions/download-artifact@v4
@@ -167,7 +173,22 @@ jobs:
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Check current source revision
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF" --jq '.sha')
+          if [ "$head_sha" = "$GITHUB_SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Source ref advanced; skipping superseded image publication/deployment."
+          fi
+
       - name: Create and push manifests
+        if: steps.current.outputs.publish == 'true'
         env:
           IMAGE: ${{ env.IMAGE }}
           TAGS: ${{ steps.meta.outputs.tags }}
@@ -189,7 +210,12 @@ jobs:
 
   watchtower-update:
     needs: manifest
+    if: needs.manifest.outputs.published == 'true'
     runs-on: ubuntu-latest
+    concurrency:
+      group: cd-publish-${{ github.repository }}-${{ github.ref }}
+      queue: max
+      cancel-in-progress: false
     env:
       TS_OAUTH_CLIENT_ID: ${{ secrets.TS_OAUTH_CLIENT_ID }}
       TS_OAUTH_CLIENT_SECRET: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
@@ -198,7 +224,22 @@ jobs:
       PUSHOVER_API_KEY: ${{ secrets.PUSHOVER_API_KEY }}
       PUSHOVER_USER_KEY: ${{ secrets.PUSHOVER_USER_KEY }}
     steps:
+      - name: Check current source revision
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head_sha=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF" --jq '.sha')
+          if [ "$head_sha" = "$GITHUB_SHA" ]; then
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Source ref advanced; skipping superseded image publication/deployment."
+          fi
+
       - name: Connect Tailscale
+        if: steps.current.outputs.publish == 'true'
         uses: tailscale/github-action@v4
         with:
           oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
@@ -207,6 +248,7 @@ jobs:
 
       - name: Trigger Watchtower update
         id: watchtower
+        if: steps.current.outputs.publish == 'true'
         run: |
           set -euo pipefail
           # One repository's deployment must not update unrelated applications.
@@ -225,7 +267,7 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Notify Pushover
-        if: always()
+        if: always() && steps.current.outputs.publish == 'true'
         env:
           REPO: ${{ github.repository }}
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
