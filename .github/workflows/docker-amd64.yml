@@ -63,7 +63,7 @@ jobs:
             GIT_COMMIT_MESSAGE=${{ env.GIT_COMMIT_MESSAGE }}
           outputs: type=image,name=${{ env.IMAGE }},push-by-digest=true,name-canonical=true
           cache-from: type=registry,ref=${{ env.IMAGE }}:cache-amd64
-          cache-to: type=registry,ref=${{ env.IMAGE }}:cache-amd64,mode=max
+          cache-to: type=registry,ref=${{ env.IMAGE }}:cache-amd64,mode=max,ignore-error=true
 
       - name: Record digest
         run: echo "${{ steps.build.outputs.digest }}" > digest-amd64.txt
